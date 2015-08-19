@@ -33,7 +33,7 @@ def on_message(ws, message):
                 stack_name = stack_as_JSON.get('name')
                 if STACK_NAME and stack_name != STACK_NAME:
                     # do nothing
-                    print("Doing nothing, STACK_NAME({}) set and notification is related to different stack({})".format(STACK_NAME,stack_namegit ))
+                    print("Doing nothing, STACK_NAME({}) set and notification is related to different stack({})".format(STACK_NAME,stack_name))
                 else:
                     text = ("A Service {} was {}d. The current state is {}. \nIt belonged to the "
                         "{} Stack.\nThe Stack state is: {}".format(service_as_JSON.get('name'),
