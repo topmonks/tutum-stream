@@ -1,18 +1,19 @@
 import os
 import websocket
 import json
+import logging
 
-from integrations.slack import generic_slack, post_slack
-from integrations.pagerduty import pagerduty_event
+from integrations.hipchat import generic_hipchat, post_hipchat
 from integrations.utilities import get_resource
- 
+
+STACK_NAME = os.environ.get('STACK_NAME', '')
+
 def on_error(ws, error):
     print error
- 
+
 def on_close(ws):
-    pagerduty_event(event_type='trigger', incident_key='tutum-stream', description='Tutum Stream connection closed.')
     print "### closed ###"
- 
+
 def on_message(ws, message):
     msg_as_JSON = json.loads(message)
     type = msg_as_JSON.get("type")
@@ -20,24 +21,35 @@ def on_message(ws, message):
         if type == "auth":
             print("Auth completed")
         elif type == "container":
-            generic_slack(message)
+            generic_hipchat(message)
         elif type == "service":
             parents = msg_as_JSON.get("parents")
+            service = get_resource(msg_as_JSON.get("resource_uri"))
+            service_as_JSON = json.loads(service)
+
             if parents:
                 stack = get_resource(parents[0])
                 stack_as_JSON = json.loads(stack)
-                text = ("A Service on Tutum was {}d.\nIt belonged to the "
-                        "{} Stack.\nThe Stack state is: {}".format(msg_as_JSON.get('action'),
-                                                                  stack_as_JSON.get('name'),
-                                                                  stack_as_JSON.get('state')))
-                post_slack(text=text)
+                stack_name = stack_as_JSON.get('name')
+                if STACK_NAME and stack_name != STACK_NAME:
+                    # do nothing
+                    print("Doing nothing, STACK_NAME({}) set and notification is related to different stack({})".format(STACK_NAME,stack_namegit ))
+                else:
+                    text = ("A Service {} was {}d. The current state is {}. \nIt belonged to the "
+                        "{} Stack.\nThe Stack state is: {}".format(service_as_JSON.get('name'),
+                                                                   msg_as_JSON.get('action'),
+                                                                   service_as_JSON.get('state'),
+                                                                   stack_name,
+                                                                   stack_as_JSON.get('state')))
+                    post_hipchat(text=text)
         elif type != "user-notifications":
             print("{}:{}:{}:{}:{}".format(type, msg_as_JSON.get("action"), msg_as_JSON.get("state"), msg_as_JSON.get("resource_uri"), msg_as_JSON.get("parents")))
- 
+
 def on_open(ws):
-    pagerduty_event(event_type='resolve', incident_key='tutum-stream', description='Tutum Stream connection open.')
     print "Connected"
- 
+
+logging.basicConfig(level=logging.DEBUG)
+
 if __name__ == "__main__":
     websocket.enableTrace(False)
     token = os.environ.get('TUTUM_TOKEN')
@@ -52,12 +64,12 @@ if __name__ == "__main__":
     else:
         raise Exception("Please provide authentication credentials")
 
-    ws = websocket.WebSocketApp(url, 
+    ws = websocket.WebSocketApp(url,
                                 on_message = on_message,
                                 on_error = on_error,
                                 on_close = on_close,
                                 on_open = on_open)
- 
+
     try:
         ws.run_forever()
     except KeyboardInterrupt:
