@@ -7,6 +7,7 @@ from integrations.hipchat import generic_hipchat, post_hipchat
 from integrations.utilities import get_resource
 
 STACK_NAME = os.environ.get('STACK_NAME', '')
+CONTAINER_MSG = os.environ.get('CONTAINER_MSG', '')
 
 def on_error(ws, error):
     print error
@@ -21,7 +22,8 @@ def on_message(ws, message):
         if type == "auth":
             print("Auth completed")
         elif type == "container":
-            generic_hipchat(message)
+            if CONTAINER_MSG:
+                generic_hipchat(message)
         elif type == "service":
             parents = msg_as_JSON.get("parents")
             service = get_resource(msg_as_JSON.get("resource_uri"))

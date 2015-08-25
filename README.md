@@ -14,5 +14,6 @@ HIPCHAT_URL
 HIPCHAT_TOKEN
 HIPCHAT_ROOM
 STACK_NAME [optional]
+CONTAINER_MSG [optional] - toggle container related messages on (off by default)
 
 docker run -it -e TUTUM_TOKEN=<> ... tuutum_stream
